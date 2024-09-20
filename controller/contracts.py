@@ -14,6 +14,8 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from selenium.webdriver.chrome.options import Options
+
 
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("openai_api_key")
@@ -37,9 +39,14 @@ def extract_text(soup):
 def scrape_website(url, base_domain, level, max_level, visited_urls, website_scrapped):
     if level > max_level or url in visited_urls:
         return
-
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # Run Chrome in headless mode
+    chrome_options.add_argument("--no-sandbox")  # Bypass OS security model
+    chrome_options.add_argument("--disable-dev-shm-usage")  # Overcome limited resource problems
+    chrome_options.add_argument("--disable-gpu")  # Applicable for headless chrome on some environments
+    chrome_options.add_argument("--remote-debugging-port=9222")  # Prevents DevToolsActivePort error
     try:
-        driver = webdriver.Chrome()
+        driver = webdriver.Chrome(options=chrome_options)
         driver.get(url)
         page_source = driver.page_source
         driver.close()
