@@ -92,7 +92,7 @@ def start_scraping(start_url, max_level, website_scrapped):
 def get_company_contracts(domain_name: str, company_name: str, number: str):
     website_scrapped = []
     start_url = "https://www."+domain_name
-    max_level = 2
+    max_level = 3
     start_scraping(start_url, max_level, website_scrapped)
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
