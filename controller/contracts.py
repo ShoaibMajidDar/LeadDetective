@@ -1,5 +1,6 @@
 import json
 import os
+import string
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 import requests
@@ -81,12 +82,15 @@ def start_scraping(start_url, max_level, website_scrapped):
     scrape_website(start_url, base_domain, 1, max_level, visited_urls, website_scrapped)
 
 
-def get_company_contracts(domain_name: str, company_name: str):
+def get_company_contracts(domain_name: str, company_name: str, number: str):
     website_scrapped = []
     start_url = "https://www."+domain_name
-    max_level = 3
+    max_level = 2
     start_scraping(start_url, max_level, website_scrapped)
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+
+    website_text = "".join(website_scrapped)
+    number_verification_flag = verify_number(number,website_text)
     index = faiss.IndexFlatL2(len(list(embeddings.embed_documents("hello world"))[0]))
     vector_store = FAISS(
                             embedding_function=embeddings,
@@ -104,42 +108,44 @@ def get_company_contracts(domain_name: str, company_name: str):
     
     vector_store.add_documents(documents=document_list, ids=list(range(len(website_scrapped))))
 
-    results = vector_store.similarity_search("contacts", k=2, filter={"website": domain_name})
+    results = vector_store.similarity_search(f"all the contracts of {company_name}", k=5, filter={"website": domain_name})
 
     ress = ""
     for res in results:
-        ress+= res.page_page_content
-
+        ress+= res.page_content
+    print(ress)
     llm = ChatOpenAI(model = "gpt-4o-mini", temperature=0)
 
     template="""
-Given the text below, identify all the contracts of the company {company_name}.
+Given the text below, identify all the contracts of the company: {company_name}.
 Output the result in the following format:
 {{
     "contract": "<contract_info>",
     "contract": "<contract_info>"
 }}
-Examples:
-{{
-    "relationship": "Manager"
-}}
-{{
-    "relationship": "Developer"
-}}
+
 
 Text for analysis:
 {search_result}
 """
     prompt = ChatPromptTemplate.from_template(template)
     chain = prompt | llm | StrOutputParser()
-    res = chain.invoke({"company": company_name, "search_result":ress})
+    res = chain.invoke({"company_name": company_name, "search_result":ress})
 
-    return json.loads(res)
+    return res, number_verification_flag
     
 
 
 
 
+def remove_punctuation(text):
+    translator = str.maketrans('', '', string.punctuation)
+    return text.translate(translator)
 
+def verify_number(number: str, website_text: str):
+    web_tt=remove_punctuation(website_text)
+    web_tt = (web_tt.replace(" ","")).lower()
 
-    
+    number = remove_punctuation(number)
+
+    return (web_tt.find(number) != -1)
