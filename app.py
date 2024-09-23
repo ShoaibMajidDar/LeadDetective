@@ -3,6 +3,15 @@ import pandas as pd
 
 from controller.verifydataframe import verify_df
 
+
+def clear_session_state():
+    # Function to clear session state variables
+    st.session_state.flag = False
+    st.session_state.uploaded_file = None
+    st.session_state.verified_df = None
+
+
+
 def main():
     # Initialize session state variables if they don't exist
     if "flag" not in st.session_state:
@@ -41,15 +50,17 @@ def main():
                 st.error(f"An error occurred while processing the file: {e}")
                 return
 
-        # Display verified data
-        st.write("Verified Data:")
-        st.write(st.session_state.verified_df)
 
         # Convert verified DataFrame to CSV for download
         csv_data = st.session_state.verified_df.to_csv(index=False)
 
         # Download button for verified data
         st.download_button(label='Download Verified Data', data=csv_data, file_name='verified_df.csv', mime='text/csv')
+
+        # Clear button to reset everything
+        if st.button("Clear"):
+            clear_session_state()
+            clear_session_state()
 
 if __name__ == "__main__":
     main()

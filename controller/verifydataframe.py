@@ -1,5 +1,5 @@
 import pandas as pd
-
+import streamlit as st
 from controller.contracts import get_company_contracts
 from controller.email import verify_email
 from controller.relationship import get_relationship
@@ -23,19 +23,16 @@ def verify_df(df: pd.DataFrame):
         email = df.iloc[i]["Email Address"]
 
         email_verified = verify_email(email)
-        print(email_verified)
         df.loc[i, "email verified"] = email_verified
 
         verify_designation = get_relationship(person_name, company_name, designation)
-        print(verify_designation)
         df.loc[i,"designation verified"] = verify_designation
 
         contracts, number_verification_flag, all_websites_contracts, all_websites_texts = get_company_contracts(website, company_name, number, all_websites_contracts, all_websites_texts)
-        print(contracts)
-        print(number_verification_flag)
         df.loc[i,"contracts"] = contracts
 
         df.loc[i,"number verified"] = number_verification_flag
+        st.write(df.iloc[i:i+1])
         
     return df
 

@@ -10,11 +10,11 @@ api_key = os.getenv("zerobounce_apikey")
 
 def verify_email(email: str):
     try:
-        response = requests.get(f"https://emailvalidation.abstractapi.com/v1/?api_key=5222ddf9d74c4621b04415cc005367f0&email={email}")
+        response = requests.get(f"https://emailvalidation.abstractapi.com/v1/?api_key=d223b20c89d444f1a66fd5f5b411f75e&email={email}")
+        return float(json.loads(response.content)["quality_score"])>0.0
     except:
         logging.error("emailvalidation abstractapi limit reached")
         return "False"
     
-    return float(json.loads(response.content)["quality_score"])>0.0
 
 

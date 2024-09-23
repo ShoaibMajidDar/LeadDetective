@@ -1,4 +1,3 @@
-import json
 import os
 import string
 from dotenv import load_dotenv
@@ -91,7 +90,13 @@ def start_scraping(start_url, max_level, website_scrapped):
 
 def get_company_contracts(domain_name: str, company_name: str, number: str, all_websites_contracts, all_websites_texts):
     website_scrapped = []
-    domain_name = domain_name.strip("https://www.")
+
+    domain_name = urlparse(domain_name)
+    domain_name = domain_name.netloc.replace('www.', '')
+
+    print(domain_name)
+
+    
     if company_name not in all_websites_contracts:
         start_url = "https://www."+domain_name
         print(start_url)
