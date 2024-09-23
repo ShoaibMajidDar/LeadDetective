@@ -89,57 +89,60 @@ def start_scraping(start_url, max_level, website_scrapped):
     scrape_website(start_url, base_domain, 1, max_level, visited_urls, website_scrapped)
 
 
-def get_company_contracts(domain_name: str, company_name: str, number: str):
+def get_company_contracts(domain_name: str, company_name: str, number: str, all_websites_contracts, all_websites_texts):
     website_scrapped = []
-    start_url = "https://www."+domain_name
-    max_level = 3
-    start_scraping(start_url, max_level, website_scrapped)
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    domain_name = domain_name.strip("https://www.")
+    if company_name not in all_websites_contracts:
+        start_url = "https://www."+domain_name
+        print(start_url)
+        max_level = 3
+        start_scraping(start_url, max_level, website_scrapped)
+        embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
-    website_text = "".join(website_scrapped)
-    number_verification_flag = verify_number(number,website_text)
-    index = faiss.IndexFlatL2(len(list(embeddings.embed_documents("hello world"))[0]))
-    vector_store = FAISS(
-                            embedding_function=embeddings,
-                            index=index,
-                            docstore=InMemoryDocstore(),
-                            index_to_docstore_id={},
-                        )
-    document_list = []
-    for i in range(len(website_scrapped)):
-        document_list.append(Document(
-                                        page_content=website_scrapped[i],
-                                        metadata={"website":domain_name}
-                                    )
+        website_text = "".join(website_scrapped)
+        all_websites_texts[company_name] = website_text
+        
+        index = faiss.IndexFlatL2(len(list(embeddings.embed_documents("hello world"))[0]))
+        vector_store = FAISS(
+                                embedding_function=embeddings,
+                                index=index,
+                                docstore=InMemoryDocstore(),
+                                index_to_docstore_id={},
                             )
+        document_list = []
+        for i in range(len(website_scrapped)):
+            document_list.append(Document(
+                                            page_content=website_scrapped[i],
+                                            metadata={"website":domain_name}
+                                        )
+                                )
+        
+        vector_store.add_documents(documents=document_list, ids=list(range(len(website_scrapped))))
+
+        results = vector_store.similarity_search(f"all the contracts and projects of {company_name}", k=5, filter={"website": domain_name})
+
+        ress = ""
+        for res in results:
+            ress+= res.page_content
+        
+
+        llm = ChatOpenAI(model = "gpt-4o-mini", temperature=0)
+
+        template="""
+    Given the text below, identify and name all the contracts of the company: {company_name}.
+    return only the contract names
+
+    Text for analysis:
+    {search_result}
+    """
+        prompt = ChatPromptTemplate.from_template(template)
+        chain = prompt | llm | StrOutputParser()
+        res = chain.invoke({"company_name": company_name, "search_result":ress})
+        all_websites_contracts[company_name] = res
     
-    vector_store.add_documents(documents=document_list, ids=list(range(len(website_scrapped))))
+    number_verification_flag = verify_number(number,all_websites_texts[company_name])
 
-    results = vector_store.similarity_search(f"all the contracts of {company_name}", k=5, filter={"website": domain_name})
-
-    ress = ""
-    for res in results:
-        ress+= res.page_content
-    print(ress)
-    llm = ChatOpenAI(model = "gpt-4o-mini", temperature=0)
-
-    template="""
-Given the text below, identify all the contracts of the company: {company_name}.
-Output the result in the following format:
-{{
-    "contract": "<contract_info>",
-    "contract": "<contract_info>"
-}}
-
-
-Text for analysis:
-{search_result}
-"""
-    prompt = ChatPromptTemplate.from_template(template)
-    chain = prompt | llm | StrOutputParser()
-    res = chain.invoke({"company_name": company_name, "search_result":ress})
-
-    return res, number_verification_flag
+    return all_websites_contracts[company_name], number_verification_flag, all_websites_contracts, all_websites_texts
     
 
 
