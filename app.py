@@ -19,6 +19,9 @@ def main():
         st.session_state.uploaded_file = None
         st.session_state.verified_df = None
 
+    st.write("### The format of the Excel/CSV file should be:")
+    st.write("**Size | Company Name | Website | POC Name | Email Address | Contact Number | Designation**")
+
     # File upload section
     if not st.session_state.flag:
         st.session_state.uploaded_file = st.file_uploader("Upload a CSV or Excel file", type=['csv', 'xlsx'])
